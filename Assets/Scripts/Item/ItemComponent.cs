@@ -3,60 +3,81 @@ using UnityEngine;
 
 public class ItemComponent : MonoBehaviour
 {
+    [SerializeField] private Collider2D componentCollider;
+    public Transform focusPosition;
+    public Transform parentComponent;
+    public ItemComponent mainComponent;
+    public ItemController itemController;
+
     [SerializeField] private Screw[] screwArr;
     private int screwAmount => screwArr.Length;
     [SerializeField] private Transform componentPos;
     [SerializeField] private float screwDuration;
 
+    [SerializeField] private Component componentScriptableObject;
     [SerializeField] private ItemComponent[] aboveComponentArr;
     [SerializeField] private ItemComponent belowComponent;
 
     public bool isAssembled = true;
+
+    private Vector2 currentPlacedPosition;
     public void Initialize()
     {
         if(screwAmount != 0)
         {
             foreach(Screw screw in screwArr)
             {
-                screw.Initialize(1f);
+                screw.Initialize(1f, this);
+                screw.AddScrewListener(UpdateFullyAssembleStatus);
             }
         }
     }
     public void StartFocusRotate()
     {
-        Tween.Rotation(transform, transform.localRotation, Quaternion.Euler(0f, 0f, 90f), 0.3f, Easing.Standard(Ease.OutCubic));
+        Tween.LocalRotation(transform, transform.localRotation, Quaternion.Euler(0f, 0f, 90f), 1f, Easing.Standard(Ease.OutCubic));
+        Tween.Position(transform, new Vector3(focusPosition.position.x, 0f, -5f), 1f, Easing.Standard(Ease.OutCubic));
     }
     public void EndFocusRotate()
     {
-        Tween.Rotation(transform, transform.localRotation, Quaternion.Euler(0f, 0f, 0f), 0.3f, Easing.Standard(Ease.OutCubic));
+        Tween.LocalRotation(transform, transform.localRotation, Quaternion.Euler(0f, 0f, 0f), 0.3f, Easing.Standard(Ease.OutCubic));
+        Tween.Position(transform, new Vector3(focusPosition.position.x, 0f, -5f), currentPlacedPosition, 1f, Easing.Standard(Ease.OutCubic));
+        Tween.Scale(transform, Vector3.one, 0.3f, Easing.Standard(Ease.OutCubic));
     }
     public void Assemble(Vector3 mousePos)
     {
-        float length = Vector3.Distance(mousePos, componentPos.position);
-        if (length <= 1f)
+        componentCollider.enabled = true;
+
+        if (componentPos == null) return;
+
+        float length = Vector2.Distance(mousePos, componentPos.position);
+        if (length <= 1f && mainComponent.enabled == true)
         {
-            if (screwAmount != 0 && IsFullyAssemble() == true)
+            if (IsReadyToAssemble() == true)
             {
-                isAssembled = true;
+                if(screwAmount == 0)
+                {
+                    isAssembled = true;
+                }
+                AttachToMainComponent();
                 transform.position = componentPos.position;
                 OnEndDragging();
             }
-            if (screwAmount == 0)
-            {
-                isAssembled = true;
-                transform.position = componentPos.position;
-                OnEndDragging();
-                Debug.Log($"{gameObject.name} has been Assembled");
-            }
+        }
+        else
+        {
+            OnEndDragging();
+            currentPlacedPosition = transform.position;
         }
     }
     public void Disassemble()
     {
         isAssembled = false;
+        itemController.assemblyStatus = false;
         OnStartDragging();
-        Debug.Log($"{gameObject.name} start disassemble");
+        componentCollider.enabled = false;
+        DetachFromMainComponent();
     }
-    private void OnStartDragging()
+    public void OnStartDragging()
     {
         Tween.Scale(transform, 1.3f, 0.2f, Easing.Standard(Ease.OutCubic));
     }
@@ -79,23 +100,62 @@ public class ItemComponent : MonoBehaviour
         }
         for (int i = 0; i < aboveComponentArr.Length; i++)
         {
-            if (aboveComponentArr[i].isAssembled == true)
+            if (aboveComponentArr[i].isAssembled == true || IsComponentScrewed(aboveComponentArr[i].screwArr) == true || aboveComponentArr[i].transform.parent == aboveComponentArr[i].parentComponent)
             {
                 return false;
             }
         }
-
         return true;
     }
-    private bool IsFullyAssemble()
+    private bool IsComponentScrewed(Screw[] componentScrewArr)
+    {
+        for(int i = 0; i < componentScrewArr.Length; i++)
+        {
+            if (componentScrewArr[i].screwStatus == ScrewStatus.Screwed)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    private bool IsReadyToAssemble()
+    {
+        if(belowComponent.isAssembled == true)
+        {
+            return true;
+        }
+        return false;
+    }
+    private void UpdateFullyAssembleStatus()
     {
         for (int i = 0; i < screwArr.Length; i++)
         {
             if (screwArr[i].screwStatus == ScrewStatus.Unscrewed)
             {
-                return false;
+                isAssembled = false;
+                return;
             }
         }
-        return true;
+        isAssembled = true;
+    }
+    private void DetachFromMainComponent()
+    {
+        this.enabled = false;
+        transform.parent = itemController.transform;
+    }
+    private void AttachToMainComponent()
+    {
+        this.enabled = true;
+        transform.parent = parentComponent.transform;
+        Tween.LocalRotation(transform, transform.localRotation, Quaternion.Euler(0f, 0f, 0f), 0.3f, Easing.Standard(Ease.OutCubic));
+        Tween.Position(transform, componentPos.position, 0.3f, Easing.Standard(Ease.OutCubic));
+    }
+    public bool IsAttachedToMainComponent()
+    {
+        if(transform.parent == parentComponent.transform)
+        {
+            return true;
+        }
+        return false;
     }
 }

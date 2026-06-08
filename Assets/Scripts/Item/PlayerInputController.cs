@@ -18,9 +18,12 @@ public class PlayerInputController : MonoBehaviour
     private Vector2 currentMouseWorldPosition => Camera.main.ScreenToWorldPoint(playerInput.Player.MousePosition.ReadValue<Vector2>());
     private Vector2 currentMouseScroll => playerInput.Player.CameraZoom.ReadValue<Vector2>();
 
-    private ItemController currentItem;
+    private ItemComponent currentItem;
+    private ItemComponent_New currentItemNew;
     private bool isDragging = false;
     private ItemComponent dragItemTarget;
+    private ItemComponent currentFocusItem;
+    private ItemComponent_New currentFocusItemNew;
 
     [SerializeField] private Button buttonExitFocus;
     private void Awake()
@@ -47,29 +50,41 @@ public class PlayerInputController : MonoBehaviour
         {
             dragItemTarget.OnDragging(currentMouseWorldPosition);
         }
-        if(currentMouseScroll.y != 0)
+        if(currentMouseScroll.y < 0 && currentFocusItem != null)
         {
-            // Scale object up/down based on mouse scroll
+            currentFocusItem.transform.localScale = new Vector3(currentFocusItem.transform.localScale.x - 0.01f, currentFocusItem.transform.localScale.y - 0.01f, currentFocusItem.transform.localScale.z - 0.01f);
+        }
+        else if(currentMouseScroll.y > 0 && currentFocusItem != null)
+        {
+            currentFocusItem.transform.localScale = new Vector3(currentFocusItem.transform.localScale.x + 0.01f, currentFocusItem.transform.localScale.y + 0.01f, currentFocusItem.transform.localScale.z + 0.01f);
         }
     }
     private void ExitFocus()
     {
-        if(currentItem != null)
-        {
-            currentItem.EndFocusRotate();
-            currentItem = null;
-            ChangeInputState(InputState.NonFocus);
-            buttonExitFocus.gameObject.SetActive(false);
-        }
+        currentItem.itemController.DisableAllComponent();
+        currentFocusItem.EndFocusRotate();
+        currentItem = null;
+        currentFocusItem = null;
+        ChangeInputState(InputState.NonFocus);
+        buttonExitFocus.gameObject.SetActive(false);
     }
     private void OnEndClicking(InputAction.CallbackContext context)
     {
         RaycastHit2D hit = Physics2D.GetRayIntersection(currentMouseToRay);
         if (hit.collider != null)
         {
-            currentItem = hit.collider.GetComponentInParent<ItemController>();
-            if (currentItem != null && currentItem.assemblyStatus == true)
+            currentItem = hit.collider.GetComponentInParent<ItemComponent>();
+            if (currentItem != null && currentItem.isAssembled == true)
             {
+                currentItem.itemController.EnableAllAssembledComponent();
+                currentFocusItem = currentItem.mainComponent;
+                currentItem.mainComponent.StartFocusRotate();
+                buttonExitFocus.gameObject.SetActive(true);
+                ChangeInputState(InputState.Focus);
+            }
+            else if(currentItem != null && currentItem.isAssembled == false)
+            {
+                currentFocusItem = currentItem;
                 currentItem.StartFocusRotate();
                 buttonExitFocus.gameObject.SetActive(true);
                 ChangeInputState(InputState.Focus);
@@ -81,10 +96,22 @@ public class PlayerInputController : MonoBehaviour
         RaycastHit2D hit = Physics2D.GetRayIntersection(currentMouseToRay);
         if (hit.collider != null && hit.collider.TryGetComponent<ItemComponent>(out ItemComponent item))
         {
-            if(item.IsReadyToDisassemble() == true)
+            if(item.IsReadyToDisassemble() == true && item != currentFocusItem && item.enabled == true)
             {
                 dragItemTarget = item;
                 item.Disassemble();
+                isDragging = true;
+            }
+            else if(item != currentFocusItem && item.isAssembled == true && item.enabled == false)
+            {
+                dragItemTarget = item.mainComponent;
+                dragItemTarget.OnStartDragging();
+                isDragging = true;
+            }
+            else if(item != currentFocusItem && item.isAssembled == false && item.enabled == false)
+            {
+                dragItemTarget = item;
+                dragItemTarget.OnStartDragging();
                 isDragging = true;
             }
         }
@@ -127,7 +154,7 @@ public class PlayerInputController : MonoBehaviour
         playerInput.Enable();
         if(state == InputState.NonFocus)
         {
-            playerInput.Player.DragComponent.canceled += OnEndClicking;
+            playerInput.Player.Click.canceled += OnEndClicking;
         }
         else if(state == InputState.Focus)
         {
@@ -141,7 +168,7 @@ public class PlayerInputController : MonoBehaviour
     {
         if (state == InputState.NonFocus)
         {
-            playerInput.Player.DragComponent.canceled -= OnEndClicking;
+            playerInput.Player.Click.canceled -= OnEndClicking;
         }
         else if (state == InputState.Focus)
         {
