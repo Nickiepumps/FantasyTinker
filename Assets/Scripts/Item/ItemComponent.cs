@@ -126,7 +126,7 @@ public class ItemComponent : MonoBehaviour
         }
         return false;
     }
-    private void UpdateFullyAssembleStatus()
+    private void UpdateFullyAssembleStatus(Screw unscrewedTarget = null)
     {
         for (int i = 0; i < screwArr.Length; i++)
         {

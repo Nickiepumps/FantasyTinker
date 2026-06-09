@@ -3,14 +3,19 @@ using UnityEngine;
 
 public class ItemComponent_New : MonoBehaviour
 {
+    private ItemController_New itemController;
     [SerializeField] private Collider2D componentCollider;
-    [SerializeField] private Component componentScriptableObject;
-
-    [SerializeField] private ComponentSlotController[] componentSlotArr;
+    public Component componentScriptableObject;
+    public ItemComponent_New anchoredComponent;
 
     private Vector2 currentPlacedPosition;
     public Vector2 focusPosition;
 
+    public void Initialize(ItemComponent_New anchoredComponent, ItemController_New itemController)
+    {
+        this.anchoredComponent = anchoredComponent;
+        this.itemController = itemController;
+    }
     public void OnStartDragging()
     {
         Tween.Scale(transform, 1.3f, 0.2f, Easing.Standard(Ease.OutCubic));

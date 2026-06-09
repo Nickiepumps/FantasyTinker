@@ -11,7 +11,7 @@ public class Screw : MonoBehaviour
 {
     [SerializeField] private SpriteRenderer screwSpriteRenderer;
     private ItemComponent screwTargetComponent;
-    private ItemComponent_New screwTargetComponentNew;
+    private ComponentSlotController screwTargetSlot;
     private float screwDuration;
     private float currentDuration;
 
@@ -19,7 +19,7 @@ public class Screw : MonoBehaviour
     private bool isUnscrewing = false;
     public ScrewStatus screwStatus;
 
-    public delegate void OnCompleteScrew();
+    public delegate void OnCompleteScrew(Screw screwTarget = null);
     private OnCompleteScrew onCompletedScrew;
 
     private Tween screwRotationTween;
@@ -53,10 +53,10 @@ public class Screw : MonoBehaviour
         this.screwDuration = screwDuration;
         screwTargetComponent = component;
     }
-    public void Initialize(float screwDuration, ItemComponent_New component)
+    public void Initialize(float screwDuration, ComponentSlotController componentSlot)
     {
         this.screwDuration = screwDuration;
-        screwTargetComponentNew = component;
+        screwTargetSlot = componentSlot;
     }
     private void StartUnscrew()
     {
@@ -69,7 +69,7 @@ public class Screw : MonoBehaviour
     }
     private void StartScrew()
     {
-        if (screwTargetComponent.IsAttachedToMainComponent() == false) return;
+        if (screwTargetSlot.IsComponentAttachedToSlot() == false) return;
 
         screwSpriteRenderer.enabled = true;
         screwRotationTween = Tween.EulerAngles(transform, Vector3.zero, new Vector3(0f, 0f, 360f), 0.8f, Easing.Standard(Ease.Linear), -1);
@@ -82,13 +82,21 @@ public class Screw : MonoBehaviour
     private void OnComplete(bool enableSprite, ScrewStatus newStatus)
     {
         screwStatus = newStatus;
-        onCompletedScrew();
+        if(newStatus == ScrewStatus.Screwed)
+        {
+            screwTargetSlot.GetScrew(this);
+        }
+        else
+        {
+            screwTargetSlot.AddToScrewContainer(this);
+        }
         isScrewing = false;
         isUnscrewing = false;
+        currentDuration = 0f;
         screwRotationTween.Complete();
         screwScaleTween.Complete();
-        currentDuration = 0f;
         screwSpriteRenderer.enabled = enableSprite;
+        onCompletedScrew(this);
     }
     public void StartScrewPerform(bool isUnscrew = true)
     {

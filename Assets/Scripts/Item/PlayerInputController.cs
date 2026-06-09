@@ -61,10 +61,14 @@ public class PlayerInputController : MonoBehaviour
     }
     private void ExitFocus()
     {
-        currentItem.itemController.DisableAllComponent();
+        /*currentItem.itemController.DisableAllComponent();
         currentFocusItem.EndFocusRotate();
         currentItem = null;
-        currentFocusItem = null;
+        currentFocusItem = null;*/
+        
+        currentFocusItemNew.EndFocusRotate();
+        currentItemNew = null;
+        currentFocusItemNew = null;
         ChangeInputState(InputState.NonFocus);
         buttonExitFocus.gameObject.SetActive(false);
     }
@@ -73,7 +77,7 @@ public class PlayerInputController : MonoBehaviour
         RaycastHit2D hit = Physics2D.GetRayIntersection(currentMouseToRay);
         if (hit.collider != null)
         {
-            currentItem = hit.collider.GetComponentInParent<ItemComponent>();
+            /*currentItem = hit.collider.GetComponentInParent<ItemComponent>();
             if (currentItem != null && currentItem.isAssembled == true)
             {
                 currentItem.itemController.EnableAllAssembledComponent();
@@ -86,6 +90,14 @@ public class PlayerInputController : MonoBehaviour
             {
                 currentFocusItem = currentItem;
                 currentItem.StartFocusRotate();
+                buttonExitFocus.gameObject.SetActive(true);
+                ChangeInputState(InputState.Focus);
+            }*/
+            currentItemNew = hit.collider.GetComponentInParent<ItemComponent_New>();
+            if (currentItemNew != null)
+            {
+                currentFocusItemNew = currentItemNew.anchoredComponent;
+                currentItemNew.anchoredComponent.StartFocusRotate();
                 buttonExitFocus.gameObject.SetActive(true);
                 ChangeInputState(InputState.Focus);
             }

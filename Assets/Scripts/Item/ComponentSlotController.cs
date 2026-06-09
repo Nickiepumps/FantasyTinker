@@ -4,7 +4,7 @@ public class ComponentSlotController : MonoBehaviour
 {
     public Component componentRequirement;
     private ComponentType componentType => componentRequirement.componentType;
-    private ItemController itemController;
+    private ItemController_New itemController;
     [SerializeField] private Transform attachTransform;
 
     [SerializeField] private Screw[] screwArr;
@@ -17,12 +17,13 @@ public class ComponentSlotController : MonoBehaviour
     public bool isAssembled = true;
     private Vector3 attachPosition => attachTransform.position;
     private int screwAmount => screwArr.Length;
-    public void Initialize(ItemController itemController)
+
+    public void Initialize(ItemController_New itemController)
     {
         this.itemController = itemController;
         foreach (Screw screw in screwArr)
         {
-            screw.Initialize(screwDuration, currentAttachedComponent);
+            screw.Initialize(screwDuration, this);
             screw.AddScrewListener(UpdateFullyAssembleStatus);
         }
     }
@@ -55,7 +56,7 @@ public class ComponentSlotController : MonoBehaviour
         }
         return false;
     }
-    private void UpdateFullyAssembleStatus()
+    private void UpdateFullyAssembleStatus(Screw screw = null)
     {
         for (int i = 0; i < screwArr.Length; i++)
         {
@@ -67,8 +68,18 @@ public class ComponentSlotController : MonoBehaviour
         }
         isAssembled = true;
     }
+    public void AddToScrewContainer(Screw unscrewedTarget)
+    {
+        itemController.AddUnscrewedScrew(unscrewedTarget);
+    }
+    public void GetScrew(Screw unscrewedTarget)
+    {
+        itemController.GetScrew(unscrewedTarget);
+    }
     public void AttachComponent(ItemComponent_New component)
     {
+        if (componentRequirement != component.componentScriptableObject) return;
+
         component.transform.position = attachPosition;
         component.transform.parent = attachTransform;
         currentAttachedComponent = component;
@@ -79,7 +90,17 @@ public class ComponentSlotController : MonoBehaviour
     }
     public void DetachComponent()
     {
+        if (belowComponent.isAssembled == false) return;
+
         currentAttachedComponent = null;
         isAssembled = false;
+    }
+    public bool IsComponentAttachedToSlot()
+    {
+        if (currentAttachedComponent != null)
+        {
+            return true;
+        }
+        return false;
     }
 }
