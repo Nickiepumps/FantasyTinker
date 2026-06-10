@@ -15,6 +15,7 @@ public class ItemComponent_New : MonoBehaviour
     {
         this.anchoredComponent = anchoredComponent;
         this.itemController = itemController;
+        currentPlacedPosition = transform.position;
     }
     public void OnStartDragging()
     {
@@ -35,6 +36,7 @@ public class ItemComponent_New : MonoBehaviour
     }
     public void EndFocusRotate()
     {
+        Tween.CompleteAll();
         Tween.LocalRotation(transform, transform.localRotation, Quaternion.Euler(0f, 0f, 0f), 0.3f, Easing.Standard(Ease.OutCubic));
         Tween.Position(transform, new Vector3(focusPosition.x, 0f, -5f), currentPlacedPosition, 1f, Easing.Standard(Ease.OutCubic));
         Tween.Scale(transform, Vector3.one, 0.3f, Easing.Standard(Ease.OutCubic));
